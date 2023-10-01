@@ -1,15 +1,17 @@
 use std::io::Write;
 use std::net::IpAddr;
 use std::process::{Command, Stdio};
+
 use axum::{
-    http::{Response, StatusCode},
-    extract::{State, Json, Path}
+    extract::{Json, Path, State},
+    http::{Response, StatusCode}
 };
 use serde::Serialize;
+use tracing::error;
 use tracing::info;
 
-use crate::schemas::{ApiResponse, AddPeerSchema, ConfigState, StatusResponse};
-use crate::utils::validate_key;
+use crate::schemas::{AddPeerSchema, ApiResponse, ConfigState, StatusResponse};
+use crate::utils::{apply_vyatta_cfg, validate_key};
 
 #[derive(Serialize)]
 pub enum ApiReturnTypes {
@@ -41,27 +43,11 @@ pub async fn get_peer(
         exit", config.config.interface, identifier
     );
 
-    // execute the commands from above
-    let mut child = Command::new("vbash")
-        .arg("-s")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .expect("Failed to spawn child process");
+    let valid = apply_vyatta_cfg(vyatta_config).await.map_err(|err| {
+        error!("Unable to apply vyatta cfg: {:?}", err);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
-    let mut stdin = child.stdin.take().expect("Failed to open stdin");
-    std::thread::spawn(move || {
-        stdin.write_all(vyatta_config.as_bytes()).expect("Failed to write to stdin");
-    });
-
-    let output = child.wait_with_output().expect("Failed to read stdout");
-
-    // valid means is configured
-    // when a peer has been marked for deletion
-    //   valid=false indicates that a peer has been deleted
-    // when a peer have just been created:
-    //   valid=true indicates that the peer has been created successfully
-    let valid = &output.stdout.len() > &1;
     let response_data = StatusResponse {
         valid,
     };

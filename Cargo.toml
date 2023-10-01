@@ -7,7 +7,7 @@ license = "AGPL-3.0"
 description = "API package for wireguard peer manager on vyos"
 
 [dependencies]
-tokio = { version = "1.26", default-features = false, features = ["macros", "rt-multi-thread", "net", "signal", "sync"] }
+tokio = { version = "1.26", default-features = false, features = ["macros", "rt-multi-thread", "net", "signal", "sync", "process"] }
 tokio-tungstenite = { version = "0.18", default-features = false, features = ["handshake"] }
 tracing-subscriber = { version = "0.3", features = ["tracing-log"] }
 clap = { version = "4.1", features = ["derive", "env"] }
