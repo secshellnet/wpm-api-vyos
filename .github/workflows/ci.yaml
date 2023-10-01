@@ -13,17 +13,45 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-x86_64-unknown-linux-musl-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-x86_64-unknown-linux-musl-
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
 
-      - name: Build project for VyOS
+      - run: cargo install --force cargo-deb
+
+      - name: "Build project for VyOS"
         run: |
           rustup target add x86_64-unknown-linux-musl        
           cargo build --target x86_64-unknown-linux-musl --release
 
-      - name: Upload artifacts
+      - name: "Build debian package"
+        run: cargo deb --no-build --no-strip --target x86_64-unknown-linux-musl
+
+      - name: "Rename artifacts"
+        run: |
+          mv target/x86_64-unknown-linux-musl/release/wpm-api-vyos .
+          mv target/x86_64-unknown-linux-musl/debian/wpm-api-vyos_0.0.1-git_amd64.deb .
+
+      - name: "Upload binary artifact"
         uses: actions/upload-artifact@v3
         with:
           name: vyos-wpm-api
-          path: target/x86_64-unknown-linux-musl/release/wpm-api-vyos
+          path: wpm-api-vyos
+
+      - name: "Upload debian package artifact"
+        uses: actions/upload-artifact@v3
+        with:
+          name: vyos-wpm-api-deb
+          path: wpm-api-vyos_0.0.1-git_amd64.deb

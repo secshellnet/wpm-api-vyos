@@ -21,10 +21,10 @@ base64 = "0.13.0"
 regex = "1.5"
 tower-http = { version = "0.4", features = ["sensitive-headers", "trace", "validate-request", "auth"], default-features = false }
 
-#[package.metadata.deb]
-#maintainer-scripts = "debian/"
-#systemd-units = { enable = true }
-#assets = [
-#    ["target/release/wpm-api", "/usr/bin/wpm-api", "755"],
-#    ["debian/default", "/etc/default/wpm-api", "644"]
-#]
+[package.metadata.deb]
+maintainer-scripts = "debian/"
+systemd-units = { enable = true }
+assets = [
+    ["target/x86_64-unknown-linux-musl/release/wpm-api-vyos", "/usr/bin/wpm-api-vyos", "755"],
+    # TODO add vyos config tree structure, see https://github.com/pkgs-hub/vyatta-web
+]
