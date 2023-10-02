@@ -13,15 +13,16 @@ pub fn validate_key(input: &str) -> Result<(), DecodeError> {
         return Err(DecodeError::InvalidByte(0, 0));
     }
 
-    let decoded = match base64::decode(input) {
-        Ok(_) => Ok(()),
-        Err(err) => Err(err),
-    };
+    base64::decode(input)?;
 
-    decoded
+    Ok(())
 }
 
-pub async fn exec<S: AsRef<OsStr>, B: AsRef<[u8]>>(command: S, args: &[S], stdin: Option<B>) -> io::Result<Output> {
+pub async fn exec<S: AsRef<OsStr>, B: AsRef<[u8]>>(
+    command: S,
+    args: &[S],
+    stdin: Option<B>,
+) -> io::Result<Output> {
     let mut cmd = Command::new(command);
 
     for arg in args {
@@ -42,15 +43,7 @@ pub async fn exec<S: AsRef<OsStr>, B: AsRef<[u8]>>(command: S, args: &[S], stdin
     child.wait_with_output().await
 }
 
-pub async fn apply_vyatta_cfg<B: AsRef<[u8]>>(cfg: B) -> io::Result<bool>{
+pub async fn apply_vyatta_cfg<B: AsRef<[u8]>>(cfg: B) -> io::Result<Vec<u8>> {
     let output = exec("vbash", &["-s"], Some(cfg)).await?;
-
-    // valid means is configured
-    // when a peer has been marked for deletion
-    //   valid=false indicates that a peer has been deleted
-    // when a peer have just been created:
-    //   valid=true indicates that the peer has been created successfully
-    let valid = &output.stdout.len() > &1;
-
-    Ok(valid)
+    Ok(output.stdout)
 }
