@@ -6,6 +6,7 @@ use axum::{
     extract::{State, Json, Path}
 };
 use serde::Serialize;
+use tracing::info;
 
 use crate::schemas::{ApiResponse, AddPeerSchema, ConfigState, StatusResponse};
 use crate::utils::validate_key;
@@ -30,6 +31,8 @@ pub async fn get_peer(
     State(config): State<ConfigState>,
     Path(identifier): Path<String>
 ) -> Result<Json<ApiReturnTypes>, StatusCode> {
+    info!("? {}", identifier);
+
     // get existing allowed ips for this identifier from current vyatta configuration
     // vyatta config systems used transactions, so if one setting is there everything is there
     let vyatta_config = format!("\
@@ -90,9 +93,11 @@ pub async fn add_peer(
         }
     }
 
+    // todo sanitize addresses, user identifier, peer identifier
+
     // generate the identifier, which is the user identifier + peer identifier
     let identifier = format!("{}-{}", peer_data.user_identifier, peer_data.peer_identifier);
-    print!("+ {}", identifier);
+    info!("+ {}", identifier);
 
     // VyOS allows the label for a peer to have 100 characters.
     if identifier.to_string().len() > 100 {
@@ -169,7 +174,7 @@ pub async fn delete_peer(
     State(config): State<ConfigState>,
     Path(identifier): Path<String>
 ) -> Result<Json<ApiReturnTypes>, StatusCode> {
-    print!("- {}", identifier);
+    info!("- {}", identifier);
 
     // get existing allowed ips for this identifier from current vyatta configuration
     let vyatta_config = format!("\

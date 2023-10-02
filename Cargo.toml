@@ -11,7 +11,7 @@ tokio = { version = "1.26", default-features = false, features = ["macros", "rt-
 tokio-tungstenite = { version = "0.18", default-features = false, features = ["handshake"] }
 tracing-subscriber = { version = "0.3", features = ["tracing-log"] }
 clap = { version = "4.1", features = ["derive", "env"] }
-tracing = "0.1"
+tracing = { version = "0.1", features = [] }
 axum = { version = "0.6.16", features = ["macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -23,8 +23,9 @@ tower-http = { version = "0.4", features = ["sensitive-headers", "trace", "valid
 
 [package.metadata.deb]
 maintainer-scripts = "debian/"
-systemd-units = { enable = true }
+systemd-units = { enable = false }
 assets = [
-    ["target/x86_64-unknown-linux-musl/release/wpm-api-vyos", "/usr/bin/wpm-api-vyos", "755"],
-    # TODO add vyos config tree structure, see https://github.com/pkgs-hub/vyatta-web
+    ["target/x86_64-unknown-linux-musl/release/wpm-api-vyos", "/opt/vyatta-wpm-api/wpm-api-vyos", "755"],
+    ["debian/etc/default/wpm-api", "/etc/default/wpm-api", "640"],
+    ["debian/opt/**/*", "/opt/", "644"],
 ]

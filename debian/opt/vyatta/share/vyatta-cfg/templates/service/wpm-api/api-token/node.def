@@ -1,0 +1,2 @@
+type: txt
+help: API Token, which is required to manage peers with wpm api.

@@ -1,0 +1,4 @@
+type: txt
+help: Port for wpm-api service (default: '8080')
+val_help: u32:1-65535; Numeric IP port
+syntax:expression: exec "${vyos_libexec_dir}/validate-value --exec \"${vyos_validators_dir}/numeric --range 1-65535\" --value \'$VAR(@)\'"; "Port number must be in range 1 to 65535"

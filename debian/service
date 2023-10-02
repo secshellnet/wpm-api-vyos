@@ -1,11 +1,9 @@
 [Unit]
 Description=Wireguard Peer Manager API for VyOS.
-After=network.target
 
 [Service]
-Type=simple
-Restart=always
-ExecStart=/usr/bin/wpm-api-vyos
+EnvironmentFile=/etc/default/wpm-api
+ExecStart=/opt/vyatta-wpm-api/wpm-api-vyos
 
 [Install]
 WantedBy=multi-user.target

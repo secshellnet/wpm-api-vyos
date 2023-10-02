@@ -1,0 +1,2 @@
+help: Wireguard Peer Manager API configuration
+end: sudo sh -c "${vyshim} /opt/vyatta-wpm-api/config.py"

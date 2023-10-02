@@ -1,8 +1,8 @@
-# Wireguard Peer Manager
+# Wireguard Peer Manager: VyOS API
 
 Wireguard Peer Manager is used for managing Road Warrior VPN endpoints and consists of two components. Users and 
 administrators utilize the Django app for graphical management of Wireguard peers. It communicates with the router's 
-REST API interfaces (for vyos this project) to apply the Wireguard configuration.
+REST API (for VyOS [this project](https://github.com/secshellnet/wpm-api-vyos)) to apply the Wireguard configuration.
 
 After the user logs in, they can easily create new Wireguard peers (each device should have its own peer to enable 
 simultaneous connections) and view or delete the Wireguard configuration. Due to this abstraction layer, end-users don't
@@ -18,12 +18,6 @@ changes to green (usually taking no longer than 30 seconds), the peer is usable.
 
 All clients connecting to the same router use the same Wireguard endpoint (in our case, the interface `wg100`), 
 differing only in the IPv4 and IPv6 addresses used within the tunnel.
-
-## Build
-VyOS has some old weird libc, so we build with musl instead.
-```shell
-cargo build --target x86_64-unknown-linux-musl --release
-```
 
 ## Specification
 - HTTP Authorization using Bearer Access Tokens.
