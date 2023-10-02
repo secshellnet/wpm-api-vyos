@@ -1,0 +1,2 @@
+help: Show wpm-api logs
+run: journalctl -u wpm-api | less

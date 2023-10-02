@@ -1,0 +1,11 @@
+{% for key, value in data.items() %}
+  {%- if key == 'listen-address' -%}
+    WPM_LISTEN_ADDR={{ value }}
+  {%- endif %}
+  {%- if key == 'interface' -%}
+    WPM_INTERFACE={{ value }}
+  {%- endif %}
+  {%- if key == 'api-token' -%}
+    WPM_SECRET={{ value }}
+  {%- endif %}
+{% endfor %}

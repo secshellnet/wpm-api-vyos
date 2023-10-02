@@ -1,0 +1,2 @@
+help: Show wpm-api status
+run: systemctl status wpm-api

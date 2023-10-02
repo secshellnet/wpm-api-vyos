@@ -1,0 +1,2 @@
+help: Restart wpm-api
+run: sudo systemctl restart wpm-api
