@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# TODO adjust permissions of assets (doesn't work for whatever reason)
 for path in /opt/vyatta-wpm-api/ /opt/vyatta/share/vyatta-cfg/templates/service/wpm-api/ \
             /opt/vyatta/share/vyatta-op/templates/{restart,show,show/log}/wpm-api/; do
     find ${path} -type d -exec chmod 0755 {} \;
