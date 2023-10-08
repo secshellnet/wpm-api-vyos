@@ -62,10 +62,10 @@ def generate(wpm_api):
 def apply(wpm_api):
     if wpm_api is None:
         # wpm_api is removed in the commit
-        call('systemctl stop wpm-api.service')
+        call('systemctl stop wpm-api-vyos.service')
         return None
 
-    call('systemctl restart wpm-api.service')
+    call('systemctl restart wpm-api-vyos.service')
     return None
 
 if __name__ == '__main__':

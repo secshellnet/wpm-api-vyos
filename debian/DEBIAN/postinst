@@ -1,9 +1,0 @@
-#!/bin/bash
-
-for path in /opt/vyatta-wpm-api/ /opt/vyatta/share/vyatta-cfg/templates/service/wpm-api/ \
-            /opt/vyatta/share/vyatta-op/templates/{restart,show,show/log}/wpm-api/; do
-    find ${path} -type d -exec chmod 0755 {} \;
-    find ${path} -type f -exec chmod 0644 {} \;
-done
-
-chmod +x /opt/vyatta-wpm-api/config.py

@@ -28,4 +28,5 @@ assets = [
     ["target/x86_64-unknown-linux-musl/release/wpm-api-vyos", "/opt/vyatta-wpm-api/wpm-api-vyos", "755"],
     ["debian/etc/default/wpm-api", "/etc/default/wpm-api", "640"],
     ["debian/opt/**/*", "/opt/", "644"],
+    ["debian/opt/vyatta-wpm-api/config.py", "/opt/vyatta-wpm-api/config.py", "755"],
 ]
