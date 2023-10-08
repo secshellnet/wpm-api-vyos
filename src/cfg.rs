@@ -5,7 +5,7 @@ use clap::Parser;
 #[derive(Parser)]
 #[clap(version)]
 pub(crate) struct ClientCfg {
-  #[arg(env = "WPM_LISTEN_ADDR", long = "listen_addr", default_value = "0.0.0.0:8080")]
+  #[arg(env = "WPM_LISTEN_ADDR", long = "listen_addr", default_value = "0.0.0.0:8002")]
   pub(crate) listen_addr: SocketAddr,
 
   #[arg(env = "WPM_SECRET")]

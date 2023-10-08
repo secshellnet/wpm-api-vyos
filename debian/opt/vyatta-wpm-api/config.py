@@ -44,10 +44,10 @@ def generate(wpm_api):
         return None
 
     # merge web/listen-address with subelement web/listen-address/port
-    # {'web': {'listen-address': {'0.0.0.0': {'port': '8080'}}}
+    # {'web': {'listen-address': {'0.0.0.0': {'port': '8002'}}}
     if 'listen-address' in wpm_api:
         address = list(wpm_api['listen-address'].keys())[0]
-        port = wpm_api['listen-address'][address].get("port", 8080)
+        port = wpm_api['listen-address'][address].get("port", 8002)
         wpm_api['listen-address'] = f"{address}:{port}"
 
     with open('/opt/vyatta-wpm-api/config.j2', 'r') as tmpl, open(config_file, 'w') as out:
