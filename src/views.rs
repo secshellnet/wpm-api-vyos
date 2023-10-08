@@ -30,7 +30,7 @@ pub async fn get_peer(
     State(config): State<ConfigState>,
     Path(identifier): Path<String>,
 ) -> Result<Json<ApiReturnTypes>, StatusCode> {
-    validate_identifier(&identifier).map_err(|| StatusCode::BAD_REQUEST)?;
+    validate_identifier(&identifier).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     info!("? {}", identifier);
 
@@ -93,7 +93,7 @@ pub async fn add_peer(
         peer_data.user_identifier, peer_data.peer_identifier
     );
     info!("+ {}", identifier);
-    validate_identifier(&identifier).map_err(|| StatusCode::BAD_REQUEST)?;
+    validate_identifier(&identifier).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // VyOS allows the label for a peer to have 100 characters.
     if identifier.len() > 100 {
@@ -162,7 +162,7 @@ pub async fn delete_peer(
     State(config): State<ConfigState>,
     Path(identifier): Path<String>,
 ) -> Result<Json<ApiReturnTypes>, StatusCode> {
-    validate_identifier(&identifier).map_err(|| StatusCode::BAD_REQUEST)?;
+    validate_identifier(&identifier).map_err(|_| StatusCode::BAD_REQUEST)?;
     info!("- {}", identifier);
 
     // get existing allowed ips for this identifier from current vyatta configuration
