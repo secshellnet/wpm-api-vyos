@@ -28,13 +28,26 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: x86_64-unknown-linux-musl
 
       - run: cargo install --force cargo-deb
 
-      - name: "Build project for VyOS"
+      - name: "Find version"
+        if: startsWith(github.ref, 'refs/tags/')
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: image
+          tags: type=semver,pattern={{version}}
+
+      - name: "Adjust version number in Cargo.toml"
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
-          rustup target add x86_64-unknown-linux-musl        
-          cargo build --target x86_64-unknown-linux-musl --release
+          sed -i'' "s/0\\.0\\.0-git/${{ steps.meta.outputs.version }}/" Cargo.toml
+          sed -i'' "s/0\\.0\\.0-git/${{ steps.meta.outputs.version }}/" Cargo.lock
+
+      - name: "Build project for VyOS"
+        run: cargo build --target x86_64-unknown-linux-musl --release
 
       - name: "Build debian package"
         run: cargo deb --no-build --no-strip --target x86_64-unknown-linux-musl
@@ -42,16 +55,19 @@ jobs:
       - name: "Rename artifacts"
         run: |
           mv target/x86_64-unknown-linux-musl/release/wpm-api-vyos .
-          mv target/x86_64-unknown-linux-musl/debian/wpm-api-vyos_0.0.1-git_amd64.deb .
+          mv target/x86_64-unknown-linux-musl/debian/wpm-api-vyos_*_amd64.deb .
 
-      - name: "Upload binary artifact"
+      - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
         with:
           name: vyos-wpm-api
-          path: wpm-api-vyos
+          path: |
+            wpm-api-vyos
+            wpm-api-vyos_*_amd64.deb
 
-      - name: "Upload debian package artifact"
-        uses: actions/upload-artifact@v3
+      - uses: crazy-max/ghaction-github-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: vyos-wpm-api-deb
-          path: wpm-api-vyos_0.0.1-git_amd64.deb
+          files: |
+            wpm-api-vyos
+            wpm-api-vyos_*_amd64.deb
