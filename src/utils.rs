@@ -18,6 +18,18 @@ pub fn validate_key(input: &str) -> Result<(), DecodeError> {
     Ok(())
 }
 
+pub fn validate_identifier(input: &str) -> Result<(), DecodeError> {
+    let regex = regex::Regex::new(r"^[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}=$").unwrap();
+
+    if !regex.is_match(input) {
+        return Err(DecodeError::InvalidByte(0, 0));
+    }
+
+    base64::decode(input)?;
+
+    Ok(())
+}
+
 pub async fn exec<S: AsRef<OsStr>, B: AsRef<[u8]>>(
     command: S,
     args: &[S],
