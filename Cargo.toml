@@ -1,6 +1,6 @@
 [package]
 name = "wpm-api-vyos"
-version = "0.0.1-git"
+version = "0.0.0-git"
 edition = "2021"
 authors = ["Nico Felbinger <https://github.com/secshellnet>"]
 license = "AGPL-3.0"
