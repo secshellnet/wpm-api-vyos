@@ -7,18 +7,18 @@ license = "AGPL-3.0"
 description = "API package for wireguard peer manager on vyos"
 
 [dependencies]
-tokio = { version = "1.26", default-features = false, features = ["macros", "rt-multi-thread", "net", "signal", "sync"] }
-tokio-tungstenite = { version = "0.18", default-features = false, features = ["handshake"] }
+tokio = { version = "1.32", default-features = false, features = ["macros", "rt-multi-thread", "net", "signal", "sync", "process"] }
+tokio-tungstenite = { version = "0.20", default-features = false, features = ["handshake"] }
 tracing-subscriber = { version = "0.3", features = ["tracing-log"] }
-clap = { version = "4.1", features = ["derive", "env"] }
+clap = { version = "4.4", features = ["derive", "env"] }
 tracing = { version = "0.1", features = [] }
-axum = { version = "0.6.16", features = ["macros"] }
+axum = { version = "0.6", features = ["macros"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tower = "0.4"
 http = "0.2"
-base64 = "0.13.0"
-regex = "1.5"
+base64 = "0.21"
+regex = "1.9"
 tower-http = { version = "0.4", features = ["sensitive-headers", "trace", "validate-request", "auth"], default-features = false }
 
 [package.metadata.deb]

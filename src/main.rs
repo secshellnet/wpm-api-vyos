@@ -1,25 +1,21 @@
-pub mod views;
-pub mod schemas;
-mod cfg;
-mod utils;
-
-use clap::Parser;
-use tracing::info;
-use axum::{
-    Router,
-    routing::{get,post,delete},
-};
-use tower_http::validate_request::ValidateRequestHeaderLayer;
 use std::sync::Arc;
 
-use crate::cfg::ClientCfg;
-use crate::views::{
-    wpm_redirect,
-    get_peer,
-    add_peer,
-    delete_peer,
+use axum::{
+    routing::{delete, get, post},
+    Router,
 };
+use clap::Parser;
+use tower_http::validate_request::ValidateRequestHeaderLayer;
+use tracing::info;
+
+use crate::cfg::ClientCfg;
 use crate::schemas::ConfigState;
+use crate::views::{add_peer, delete_peer, get_peer, wpm_redirect};
+
+mod cfg;
+pub mod schemas;
+mod utils;
+pub mod views;
 
 #[tokio::main]
 async fn main() {
@@ -39,7 +35,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(wpm_redirect))
         .nest("/api", api_router)
-        .with_state(ConfigState{
+        .with_state(ConfigState {
             config: config.clone(),
         });
 
