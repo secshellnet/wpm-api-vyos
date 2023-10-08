@@ -8,7 +8,7 @@ pub(crate) struct ClientCfg {
     #[arg(
         env = "WPM_LISTEN_ADDR",
         long = "listen_addr",
-        default_value = "0.0.0.0:8082"
+        default_value = "0.0.0.0:8002"
     )]
     pub(crate) listen_addr: SocketAddr,
 
