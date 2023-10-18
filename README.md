@@ -22,37 +22,4 @@ differing only in the IPv4 and IPv6 addresses used within the tunnel.
 ## Specification
 - HTTP Authorization using Bearer Access Tokens.
 
-### Endpoints
-| HTTP Method | Endpoint                | Description                 | Returns (on success) |
-|-------------|-------------------------|-----------------------------|----------------------|
-| GET         | `/api/peer/:identifier` | Check the status of a peer  | `StatusResponse`     |
-| POST        | `/api/peer/`            | Create new peer             | `ApiResponse`        |
-| DELETE      | `/api/peer/:identifier` | Delete peer by identifier   | `ApiResponse`        |
-
-### Schemas
-#### AddPeerSchema
-```json
-{
-    "user_identifier": "",
-    "peer_identifier": "",
-    "publicKey": "",
-    "psk": "",
-    "tunnelIpv4": "",
-    "tunnelIpv6": ""
-}
-```
-
-#### ApiResponse
-```json
-{
-    "status": "success",
-    "message": "..."
-}
-```
-
-#### StatusResponse
-```json
-{
-    "valid": true
-}
-```
+See [editor.swagger.io/](https://editor.swagger.io/) and [openapi.yaml](./openapi.yaml).

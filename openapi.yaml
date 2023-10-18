@@ -1,0 +1,87 @@
+openapi: 3.0.1
+info:
+  title: Wireguard Peer Manager API
+  description: API for managing wireguard peers
+  version: 1.0.0
+paths:
+  /api/peer/{identifier}:
+    parameters:
+      - name: identifier
+        in: path
+        required: true
+        description: Unique identifier of the peer
+        schema:
+          type: string
+    get:
+      summary: Check the status of a peer
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+    delete:
+      summary: Delete peer by identifier
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/peer/:
+    post:
+      summary: Create new peer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPeerSchema'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+components:
+  schemas:
+    AddPeerSchema:
+      type: object
+      properties:
+        user_identifier:
+          type: string
+          description: User identifier
+        peer_identifier:
+          type: string
+          description: Peer identifier
+        publicKey:
+          type: string
+          description: Public key of the peer
+        psk:
+          type: string
+          description: Pre-shared key for the connection
+        tunnelIpv4:
+          type: string
+          description: IPv4 address for the tunnel
+        tunnelIpv6:
+          type: string
+          description: IPv6 address for the tunnel
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status message
+        message:
+          type: string
+          description: Response message
+    StatusResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Indicates if the response is valid or not
+

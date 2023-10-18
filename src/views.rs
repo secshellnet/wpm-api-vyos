@@ -87,7 +87,9 @@ pub async fn add_peer(
         }
     }
 
-    // todo sanitize addresses, user identifier, peer identifier
+    // check if addresses are valid
+
+    
 
     // generate the identifier, which is the user identifier + peer identifier
     let identifier = format!(
@@ -96,11 +98,6 @@ pub async fn add_peer(
     );
     info!("+ {}", identifier);
     if !validate_identifier(&identifier) {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    // VyOS allows the label for a peer to have 100 characters.
-    if identifier.len() > 100 {
         response_data.push(ApiResponse {
             status: String::from("error"),
             message: String::from("invalid value for parameter identifier"),
@@ -224,7 +221,9 @@ pub async fn delete_peer(
     }
 
     let identifier_parts: Vec<&str> = identifier.split('-').collect();
+    // TODO is this really correct? both zero??? FIRSTNAME-LASTNAME
     let user_identifier = format!("{}-{}", identifier_parts[0], identifier_parts[0]);
+    println!("OBJECTS WITH USER IDENT: %s TO BE DELETED... TODO not sure if these are correct!", user_identifier);
 
     let vyatta_config = format!(
         "\

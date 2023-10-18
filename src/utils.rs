@@ -20,9 +20,10 @@ pub fn validate_key(input: &str) -> Result<(), DecodeError> {
 }
 
 pub fn validate_identifier(input: &str) -> bool {
-    let regex = regex::Regex::new(r"^[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}$").unwrap();
+    let regex = regex::Regex::new(r"^[A-Z]+-[A-Z]+-[A-Za-z0-9_]{1,32}$").unwrap();
 
-    regex.is_match(input)
+    // VyOS allows the label for a peer to have 100 characters.
+    regex.is_match(input) && input.len() <= 100
 }
 
 pub async fn exec<S: AsRef<OsStr>, B: AsRef<[u8]>>(
