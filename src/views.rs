@@ -4,6 +4,7 @@ use axum::{
     extract::{Json, Path, State},
     http::{Response, StatusCode},
 };
+use axum::response::IntoResponse;
 use serde::Serialize;
 use tracing::{error, info};
 
@@ -66,7 +67,7 @@ pub async fn get_peer(
 pub async fn add_peer(
     State(config): State<ConfigState>,
     Json(peer_data): Json<AddPeerSchema>,
-) -> Result<Json<ApiReturnTypes>, StatusCode> {
+) -> Result<Json<ApiReturnTypes>, axum::response::Response> {
     let mut response_data = vec![];
 
     // check if the public key is valid
@@ -88,8 +89,18 @@ pub async fn add_peer(
     }
 
     // check if addresses are valid
-
-    
+    if let Err(_) = &peer_data.ipv4_tunnel_address.parse::<std::net::Ipv4Addr>() {
+        response_data.push(ApiResponse {
+            status: String::from("error"),
+            message: String::from("invalid value for parameter tunnelIpv4"),
+        });
+    }
+    if let Err(_) = &peer_data.ipv4_tunnel_address.parse::<std::net::Ipv6Addr>() {
+        response_data.push(ApiResponse {
+            status: String::from("error"),
+            message: String::from("invalid value for parameter tunnelIpv6"),
+        });
+    }
 
     // generate the identifier, which is the user identifier + peer identifier
     let identifier = format!(
@@ -104,9 +115,8 @@ pub async fn add_peer(
         });
     }
 
-    if response_data.len() > 0 {
-        // TODO send bad request, eg. err
-        return Ok(Json(ApiReturnTypes::ListOfApiResponses(response_data)));
+    if !response_data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, Json(ApiReturnTypes::ListOfApiResponses(response_data))).into_response());
     }
 
     // build the commands to reconfigure VyOS
@@ -201,7 +211,6 @@ pub async fn delete_peer(
             // remove netmask
             address = address.split('/').next().expect("No parts found");
 
-            //println!("{}", address);
 
             // determine ipv4 / ipv6 address
             match address.parse::<IpAddr>() {
@@ -215,15 +224,13 @@ pub async fn delete_peer(
                 },
                 Err(_) => error!("Invalid IP address format"),
             }
-            //println!("{}", address4);
-            //println!("{}", address6);
         }
     }
 
     let identifier_parts: Vec<&str> = identifier.split('-').collect();
     // TODO is this really correct? both zero??? FIRSTNAME-LASTNAME
     let user_identifier = format!("{}-{}", identifier_parts[0], identifier_parts[0]);
-    println!("OBJECTS WITH USER IDENT: %s TO BE DELETED... TODO not sure if these are correct!", user_identifier);
+    println!("OBJECTS WITH USER IDENT: {} TO BE DELETED... TODO not sure if these are correct!", user_identifier);
 
     let vyatta_config = format!(
         "\
