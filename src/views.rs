@@ -18,7 +18,7 @@ pub enum ApiReturnTypes {
 }
 
 pub async fn wpm_redirect() -> Response<String> {
-    let location = "https://wpm.general.pve3.secshell.net";
+    let location = "https://secshell.de";
     Response::builder()
         .status(StatusCode::FOUND)
         .header("Location", location)
