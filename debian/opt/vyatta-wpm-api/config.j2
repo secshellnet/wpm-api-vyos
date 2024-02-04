@@ -8,4 +8,13 @@
   {%- if key == 'api-token' -%}
     WPM_SECRET={{ value }}
   {%- endif %}
+  {%- if key == 'dns' -%}
+    WPM_DNS={{ value }}
+  {%- endif %}
+  {%- if key == 'endpoint' -%}
+    WPM_ENDPOINT={{ value }}
+  {%- endif %}
+  {%- if key == 'name' -%}
+    WPM_SERVER_ID={{ value }}
+  {%- endif %}
 {% endfor %}

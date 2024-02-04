@@ -7,3 +7,5 @@ ExecStart=/opt/vyatta-wpm-api/wpm-api-vyos
 
 [Install]
 WantedBy=multi-user.target
+
+# TODO needs to run as another user than root -> locks configuration

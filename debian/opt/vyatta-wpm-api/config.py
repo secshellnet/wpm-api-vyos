@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import urllib.request
 
 from sys import exit
 
@@ -49,6 +50,19 @@ def generate(wpm_api):
         address = list(wpm_api['listen-address'].keys())[0]
         port = wpm_api['listen-address'][address].get("port", 8002)
         wpm_api['listen-address'] = f"{address}:{port}"
+
+    # If multiple dns servers are defined the value is a list
+    # so we need to merge them to a comma seperated string
+    # {'dns': ['1.1.1.1', '1.0.0.1']}
+    if 'dns' in wpm_api and isinstance(wpm_api['dns'], list):
+        wpm_api['dns'] = ','.join(wpm_api['dns'])
+    
+    if 'endpoint' in wpm_api:
+        if isinstance(wpm_api['endpoint'], list):
+            wpm_api['endpoint'] = ','.join(wpm_api['endpoint'])
+    else:
+        # defaults to public ipv4 address
+        wpm_api['endpoint'] = urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
     with open('/opt/vyatta-wpm-api/config.j2', 'r') as tmpl, open(config_file, 'w') as out:
         template = Template(tmpl.read()).render(data=wpm_api)

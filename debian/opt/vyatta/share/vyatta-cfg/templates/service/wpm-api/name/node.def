@@ -1,0 +1,2 @@
+type: txt
+help: Descriptive name of this Wireguard endpoint (defaults to hostname)

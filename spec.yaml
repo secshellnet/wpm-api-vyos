@@ -18,16 +18,14 @@ info:
     The api requires some static information, which can be given by environment 
     variables (or command options (not important, but nice to have)):
 
-    | Environment Variable | (Command Line Option) | Description | Default Value |
-    |----------------------|-----------------------|-------------|---------------|
-    | WPM_SECRET      | --secret      | Secret Key to use the API  |             |
-    | WPM_LISTEN_ADDR | --listen-addr | Listen Address of the api  | 0.0.0.0:8002 |
-    | WPM_SERVER_ID   | `--server-id` | Server Identifier          | hostname of router |
-    | WPM_DNS4        | `--dns4`      | IPv4 address of DNS server | None        |
-    | WPM_DNS6        | `--dns6`      | IPv6 address of DNS server | None        |
-    | WPM_ENDPOINT4   | `--endpoint4` | IPv4 address of the wireguard endpoint | Public ipv4 address |
-    | WPM_ENDPOINT6   | `--endpoint6` | IPv6 address of the wireguard endpoint | Public ipv6 address |
-    | WPM_INTERFACE   | `--interface` | Wireguard interface for road warrior clients | `wg100` |
+    | Environment Variable | (Command Line Option) | Description                                  | Default Value |
+    |----------------------|-----------------------|----------------------------------------------|---------------|
+    | WPM_SECRET           | --secret              | Secret Key to use the API                    |               |
+    | WPM_LISTEN_ADDR      | --listen-addr         | Listen Address of the api                    | 0.0.0.0:8002  |
+    | WPM_SERVER_ID        | `--server-id`         | Server Identifier                            | hostname of router |
+    | WPM_DNS              | `--dns`               | IP addresses of DNS servers (csv)            | None          |
+    | WPM_ENDPOINT         | `--endpoint`          | IP addresses of the wireguard endpoint (csv) | Public ipv4 address |
+    | WPM_INTERFACE        | `--interface`         | Wireguard interface for road warrior clients | `wg100`       |
 
     The vyatta configuration system should adjust the file `/etc/default/wpm-api`, which is 
     [being used as EnvironmentFile in the systemd service](https://github.com/secshellnet/wpm-api-vyos/blob/main/debian/service).
@@ -35,9 +33,9 @@ info:
     Besides from the static configured information, some additional information is required for PeerResponse:
     | Origin | Description |
     |--------|-------------|
-    | File `/config/auth/wireguard/{interface}/public.txt` | Wireguard public key of wireguard endpoint of server |
-    | Vyatta config `interfaces wireguard {interface} port` | Wireguard endpoint port |
-    | Vyatta config `interfaces wireguard {interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} allowed-ips` | Tunnel ip addresses |
+    | File `/config/auth/wireguard/{config.interface}/public.txt` | Wireguard public key of wireguard endpoint of server |
+    | Vyatta config `interfaces wireguard {config.interface} port` | Wireguard endpoint port |
+    | Vyatta config `interfaces wireguard {config.interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} allowed-ips` | Tunnel ip addresses |
 
     Rust Project (with security vulnerabilities and other schemas): [github.com/secshellnet/wpm-api-vyos](https://github.com/secshellnet/wpm-api-vyos)
 
@@ -54,7 +52,7 @@ paths:
       description: |
         This endpoint returns a list of identifiers of wireguard peers.
         The information can be gathered by executing the following shell command:
-        ```bash
+        ```
         source /opt/vyatta/etc/functions/script-template
         run show configuration commands | match 'interfaces wireguard {config.interface} peer'
         exit
@@ -70,6 +68,18 @@ paths:
         set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything allowed-ips '2000:3000:4000:5000:b4ab:9c90:b2d0:10d6/128'
         set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything preshared-key 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
         set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything pubkey 'BnOI2Om6I5blE145Yx9zXA2sKbIwMZ7O52aj8rlQ0mA='
+        ```
+
+        Responses:
+        ```json
+        {
+          "peers": {
+            "FIRSTNAME-LASTNAME": [
+              "something",
+              "anything"
+            ]
+          }
+        }
         ```
       security:
         - BearerAuth: []
@@ -254,6 +264,8 @@ components:
         success:
           type: boolean
           description: Indicates whether the operation was successful
+        message:
+          type: string
 
     NewPeerRequest:
       type: object
@@ -284,7 +296,7 @@ components:
           type: string
           pattern: '^[A-Za-z0-9+/]{43}=$'
           description: Wireguard pre-shared key
-  
+
     IdentifierListResponse:
       type: object
       properties:
