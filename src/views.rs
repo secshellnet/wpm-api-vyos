@@ -7,23 +7,26 @@ use axum::{
 use serde::Serialize;
 use tracing::{error, info};
 
-use crate::schemas::{AddPeerSchema, ApiResponse, ConfigState, StatusResponse};
-use crate::utils::{apply_vyatta_cfg, validate_identifier, validate_key};
+use crate::schemas::{NewPeerRequest, ApiResponse, PeerResponse, ConfigState, IsValidResponse, IdentifierListResponse};
+use crate::utils::{apply_vyatta_cfg, validate_identifier, validate_key, validate_name, validate_device_id};
 
 #[derive(Serialize)]
 pub enum ApiReturnTypes {
     ApiResponse(ApiResponse),
-    StatusResponse(StatusResponse),
+    IsValidResponse(IsValidResponse),
+    PeerResponse(PeerResponse),
     ListOfApiResponses(Vec<ApiResponse>),
+    IdentifierListResponse(IdentifierListResponse),
 }
 
-pub async fn wpm_redirect() -> Response<String> {
-    let location = "https://secshell.de";
-    Response::builder()
-        .status(StatusCode::FOUND)
-        .header("Location", location)
-        .body(format!("Redirecting to {}", location))
-        .unwrap()
+pub async fn get_peers() -> Result<Json<ApiReturnTypes>, StatusCode> {
+    info!("? all");
+    
+    // TODO get identifier or peers
+
+    let response_data = IdentifierListResponse { peers: [].to_vec() };
+
+    Ok(Json(ApiReturnTypes::IdentifierListResponse(response_data)))
 }
 
 pub async fn get_peer(
@@ -36,7 +39,7 @@ pub async fn get_peer(
 
     info!("? {}", identifier);
 
-    // get existing allowed ips for this identifier from current vyatta configuration
+    /*// get existing allowed ips for this identifier from current vyatta configuration
     // vyatta config systems used transactions, so if one setting is there everything is there
     let vyatta_config = format!(
         "\
@@ -56,74 +59,84 @@ pub async fn get_peer(
     //   valid=false indicates that a peer has been deleted
     // when a peer have just been created:
     //   valid=true indicates that the peer has been created successfully
-    let valid = stdout.len() > 1;
+    let valid = stdout.len() > 1;*/
 
-    let response_data = StatusResponse { valid };
+    let response_data = ApiResponse { success: false, message: String::new() };
 
-    Ok(Json(ApiReturnTypes::StatusResponse(response_data)))
+    Ok(Json(ApiReturnTypes::ApiResponse(response_data)))
 }
 
 pub async fn add_peer(
     State(config): State<ConfigState>,
-    Json(peer_data): Json<AddPeerSchema>,
+    Json(peer_data): Json<NewPeerRequest>,
 ) -> Result<Json<ApiReturnTypes>, StatusCode> {
     let mut response_data = vec![];
 
-    // check if the public key is valid
-    if let Err(_) = validate_key(&peer_data.public_key.to_string()) {
+    // check if parameter values are valid
+    if let Err(_) = validate_name(&peer_data.firstname.to_string()) {
         response_data.push(ApiResponse {
-            status: String::from("error"),
-            message: String::from("invalid value for parameter publicKey"),
+            success: false,
+            message: String::from("Invalid value for parameter firstname"),
         });
     }
 
-    // check if the pre-shared key is valid
+    if let Err(_) = validate_name(&peer_data.lastname.to_string()) {
+        response_data.push(ApiResponse {
+            success: false,
+            message: String::from("Invalid value for parameter lastname"),
+        });
+    }
+
+    if let Err(_) = validate_device_id(&peer_data.device_id.to_string()) {
+        response_data.push(ApiResponse {
+            success: false,
+            message: String::from("Invalid value for parameter deviceId"),
+        });
+    }
+
+    if let Err(_) = validate_key(&peer_data.public_key.to_string()) {
+        response_data.push(ApiResponse {
+            success: false,
+            message: String::from("Invalid value for parameter publicKey"),
+        });
+    }
+
     if let Some(psk) = &peer_data.psk {
         if let Err(_) = validate_key(&psk) {
             response_data.push(ApiResponse {
-                status: String::from("error"),
-                message: String::from("invalid value for parameter psk"),
+                success: false,
+                message: String::from("Invalid value for parameter psk"),
             });
         }
     }
 
-    // todo sanitize addresses, user identifier, peer identifier
-
-    // generate the identifier, which is the user identifier + peer identifier
     let identifier = format!(
-        "{}-{}",
-        peer_data.user_identifier, peer_data.peer_identifier
+        "{}-{}-{}",
+        peer_data.firstname, peer_data.lastname, peer_data.device_id
     );
     info!("+ {}", identifier);
-    if !validate_identifier(&identifier) {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    // VyOS allows the label for a peer to have 100 characters.
-    if identifier.len() > 100 {
-        response_data.push(ApiResponse {
-            status: String::from("error"),
-            message: String::from("invalid value for parameter identifier"),
-        });
-    }
 
     if response_data.len() > 0 {
-        // TODO send bad request, eg. err
+        // TODO send http 400 bad request
         return Ok(Json(ApiReturnTypes::ListOfApiResponses(response_data)));
     }
 
-    // build the commands to reconfigure VyOS
+    // TODO generate next free addresses
+
+    /*// build the commands to reconfigure VyOS
     let mut commands = format!(
         "\
-        set firewall group address-group VPN-{user_identifier} address '{address4}'\n\
-        set firewall group ipv6-address-group VPN-{user_identifier}-6 address '{address6}'\n\
-        set interfaces wireguard {interface} peer {identifier} allowed-ips '{address4}/32'\n\
-        set interfaces wireguard {interface} peer {identifier} allowed-ips '{address6}/128'\n\
-        set interfaces wireguard {interface} peer {identifier} pubkey '{public_key}'",
+        set firewall group address-group VPN-{firstname}-{lastname} address '{address4}'\n\
+        set firewall group ipv6-address-group VPN-{firstname}-{lastname}-6 address '{address6}'\n\
+        set interfaces wireguard {interface} peer {firstname}-{lastname}-{device_id} allowed-ips '{address4}/32'\n\
+        set interfaces wireguard {interface} peer {firstname}-{lastname}-{device_id} allowed-ips '{address6}/128'\n\
+        set interfaces wireguard {interface} peer {firstname}-{lastname}-{device_id} pubkey '{public_key}'",
         user_identifier = peer_data.user_identifier,
         address4 = peer_data.ipv4_tunnel_address,
         address6 = peer_data.ipv6_tunnel_address,
-        identifier = identifier,
+        firstname = peer_data.firstname,
+        lastname = peer_data.lastname,
+        device_id = peer_data.device_id,
         interface = config.config.interface,
         public_key = peer_data.public_key,
     );
@@ -131,9 +144,11 @@ pub async fn add_peer(
     // in case a psk is given, add it to the configuration
     if let Some(psk) = &peer_data.psk {
         let psk_config = format!(
-            "set interfaces wireguard {interface} peer {identifier} preshared-key '{psk}';",
+            "set interfaces wireguard {interface} peer {firstname}-{lastname}-{device_id} preshared-key '{psk}';",
             interface = config.config.interface,
-            identifier = identifier,
+            firstname = peer_data.firstname,
+            lastname = peer_data.lastname,
+            device_id = peer_data.device_id,
             psk = psk
         );
         commands = format!("{}\n{}", commands, psk_config);
@@ -152,14 +167,9 @@ pub async fn add_peer(
         if let Err(err) = apply_vyatta_cfg(vyatta_config).await {
             error!("Failed to apply vyatta config: {:?}", err);
         }
-    });
+    });*/
 
-    let response_data = ApiResponse {
-        status: String::from("success"),
-        message: format!("peer {} will be created", identifier),
-    };
-
-    Ok(Json(ApiReturnTypes::ApiResponse(response_data)))
+    Ok(Json(ApiReturnTypes::ListOfApiResponses(response_data)))
 }
 
 pub async fn delete_peer(
@@ -171,7 +181,7 @@ pub async fn delete_peer(
     }
     info!("- {}", identifier);
 
-    // get existing allowed ips for this identifier from current vyatta configuration
+    /*// get existing allowed ips for this identifier from current vyatta configuration
     let vyatta_config = format!(
         "\
         source /opt/vyatta/etc/functions/script-template\n\
@@ -244,12 +254,9 @@ pub async fn delete_peer(
         if let Err(err) = apply_vyatta_cfg(vyatta_config).await {
             error!("Failed to apply vyatta config: {:?}", err);
         }
-    });
+    });*/
 
-    let response_data = ApiResponse {
-        status: String::from("success"),
-        message: format!("peer {} will be deleted", identifier),
-    };
+    let response_data = ApiResponse { success: false, message: String::new() };
 
     Ok(Json(ApiReturnTypes::ApiResponse(response_data)))
 }

@@ -19,8 +19,20 @@ pub fn validate_key(input: &str) -> Result<(), DecodeError> {
     Ok(())
 }
 
+pub fn validate_name(input: &str) -> bool {
+    let regex = regex::Regex::new(r"^[A-Z]{1,100}$").unwrap();
+
+    regex.is_match(input)
+}
+
+pub fn validate_device_id(input: &str) -> bool {
+    let regex = regex::Regex::new(r"^[A-Za-z0-9]{1,32}$").unwrap();
+
+    regex.is_match(input)
+}
+
 pub fn validate_identifier(input: &str) -> bool {
-    let regex = regex::Regex::new(r"^[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}$").unwrap();
+    let regex = regex::Regex::new(r"^(?=.{1,100}$)[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}$").unwrap();
 
     regex.is_match(input)
 }

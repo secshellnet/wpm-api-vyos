@@ -1,8 +1,8 @@
-# Wireguard Peer Manager: VyOS API
+# Wireguard Peer Manager
 
 Wireguard Peer Manager is used for managing Road Warrior VPN endpoints and consists of two components. Users and 
-administrators utilize the Django app for graphical management of Wireguard peers. It communicates with the router's 
-REST API (for VyOS [this project](https://github.com/secshellnet/wpm-api-vyos)) to apply the Wireguard configuration.
+administrators utilize a Web Application for graphical management of Wireguard peers. It communicates with the router's 
+REST API to apply the Wireguard configuration.
 
 After the user logs in, they can easily create new Wireguard peers (each device should have its own peer to enable 
 simultaneous connections) and view or delete the Wireguard configuration. Due to this abstraction layer, end-users don't
@@ -19,40 +19,6 @@ changes to green (usually taking no longer than 30 seconds), the peer is usable.
 All clients connecting to the same router use the same Wireguard endpoint (in our case, the interface `wg100`), 
 differing only in the IPv4 and IPv6 addresses used within the tunnel.
 
-## Specification
-- HTTP Authorization using Bearer Access Tokens.
-
-### Endpoints
-| HTTP Method | Endpoint                | Description                 | Returns (on success) |
-|-------------|-------------------------|-----------------------------|----------------------|
-| GET         | `/api/peer/:identifier` | Check the status of a peer  | `StatusResponse`     |
-| POST        | `/api/peer/`            | Create new peer             | `ApiResponse`        |
-| DELETE      | `/api/peer/:identifier` | Delete peer by identifier   | `ApiResponse`        |
-
-### Schemas
-#### AddPeerSchema
-```json
-{
-    "user_identifier": "",
-    "peer_identifier": "",
-    "publicKey": "",
-    "psk": "",
-    "tunnelIpv4": "",
-    "tunnelIpv6": ""
-}
-```
-
-#### ApiResponse
-```json
-{
-    "status": "success",
-    "message": "..."
-}
-```
-
-#### StatusResponse
-```json
-{
-    "valid": true
-}
-```
+![](./media/overview.png)
+![](./media/view.png)
+![](./media/new.png)

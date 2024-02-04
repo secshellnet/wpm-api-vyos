@@ -5,35 +5,63 @@ use serde::{Deserialize, Serialize};
 use crate::cfg::ClientCfg;
 
 #[derive(Deserialize, Serialize)]
-pub struct ApiResponse {
-    pub status: String,
-    pub message: String,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct StatusResponse {
+pub struct IsValidResponse {
     pub valid: bool,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct AddPeerSchema {
-    #[serde(rename = "userIdentifier")]
-    pub user_identifier: String,
+pub struct ApiResponse {
+    pub success: bool,
+    pub message: String,
+}
 
-    #[serde(rename = "peerIdentifier")]
-    pub peer_identifier: String,
+#[derive(Deserialize, Serialize)]
+pub struct NewPeerRequest {
+    pub firstname: String,
+    pub lastname: String,
+
+    #[serde(rename = "deviceId")]
+    pub device_id: String,
 
     #[serde(rename = "publicKey")]
     pub public_key: String,
 
     pub psk: Option<String>,
-
-    #[serde(rename = "tunnelIpv4")]
-    pub ipv4_tunnel_address: String,
-
-    #[serde(rename = "tunnelIpv6")]
-    pub ipv6_tunnel_address: String,
 }
+
+#[derive(Deserialize, Serialize)]
+pub struct PeerResponse {
+    pub firstname: String,
+    pub lastname: String,
+
+    #[serde(rename = "deviceId")]
+    pub device_id: String,
+
+    #[serde(rename = "serverId")]
+    pub server_id: String,
+
+    #[serde(rename = "publicKey")]
+    pub public_key: String,
+
+    // TODO fix datatype
+    pub endpoint: Vec<String>,
+
+    pub psk: Option<String>,
+
+    #[serde(rename = "tunnelAddress")]
+    // TODO fix datatype
+    pub tunnel_addr: Vec<String>,
+
+    // TODO fix datatype
+    pub dns: Option<Vec<String>>,
+
+    pub valid: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct IdentifierListResponse {
+    pub peers: Vec<String>,
+} 
 
 #[derive(Clone)]
 pub struct ConfigState {

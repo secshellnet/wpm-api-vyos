@@ -1,0 +1,390 @@
+openapi: 3.0.0
+info:
+  title: "Wireguard Peer Manager: Router API for VyOS"
+  version: 2.0.0
+  description: |
+    The API is required to be stateless beside from vyatta configuration 
+    system (no database, no custom files, ...)!
+    
+    HTTP Requests for creation and deletion of peers will be handled async, 
+    `ApiResponse` is being returned immediatly, then the configuration is 
+    being changed (It might take several minutes until the configuration is applied).
+    
+    HTTP Requests for HTTP GET requests can return `PeerResponse` (which 
+    includes all nessesary information for the wireguard client configuration, 
+    besides the private key of the user) or `IsValidResponse` (with valid=false) 
+    if the peer is not applied yet or already deleted.
+
+    The api requires some static information, which can be given by environment 
+    variables (or command options (not important, but nice to have)):
+
+    | Environment Variable | (Command Line Option) | Description | Default Value |
+    |----------------------|-----------------------|-------------|---------------|
+    | WPM_SECRET      | --secret      | Secret Key to use the API  |             |
+    | WPM_LISTEN_ADDR | --listen-addr | Listen Address of the api  | 0.0.0.0:8002 |
+    | WPM_SERVER_ID   | `--server-id` | Server Identifier          | hostname of router |
+    | WPM_DNS4        | `--dns4`      | IPv4 address of DNS server | None        |
+    | WPM_DNS6        | `--dns6`      | IPv6 address of DNS server | None        |
+    | WPM_ENDPOINT4   | `--endpoint4` | IPv4 address of the wireguard endpoint | Public ipv4 address |
+    | WPM_ENDPOINT6   | `--endpoint6` | IPv6 address of the wireguard endpoint | Public ipv6 address |
+    | WPM_INTERFACE   | `--interface` | Wireguard interface for road warrior clients | `wg100` |
+
+    The vyatta configuration system should adjust the file `/etc/default/wpm-api`, which is 
+    [being used as EnvironmentFile in the systemd service](https://github.com/secshellnet/wpm-api-vyos/blob/main/debian/service).
+
+    Besides from the static configured information, some additional information is required for PeerResponse:
+    | Origin | Description |
+    |--------|-------------|
+    | File `/config/auth/wireguard/{interface}/public.txt` | Wireguard public key of wireguard endpoint of server |
+    | Vyatta config `interfaces wireguard {interface} port` | Wireguard endpoint port |
+    | Vyatta config `interfaces wireguard {interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} allowed-ips` | Tunnel ip addresses |
+
+    Rust Project (with security vulnerabilities and other schemas): [github.com/secshellnet/wpm-api-vyos](https://github.com/secshellnet/wpm-api-vyos)
+
+    A debian package for vyos 1.3 (with everything for the vyatta config tree) is required 
+    (see [github.com/secshellnet/wpm-api-vyos/tree/main/debian](https://github.com/secshellnet/wpm-api-vyos/tree/main/debian)
+    for the structure of the previous version - feel free to contact [me](https://github.com/felbinger/) to help you!)
+    
+    The project will be used in [github.com/os-builds/vyos](https://github.com/os-builds/vyos), so it has to be free and open source software.
+
+paths:
+  /api/peer/:
+    get:
+      summary: Get a list of all peers
+      description: |
+        This endpoint returns a list of identifiers of wireguard peers.
+        The information can be gathered by executing the following shell command:
+        ```bash
+        source /opt/vyatta/etc/functions/script-template
+        run show configuration commands | match 'interfaces wireguard {config.interface} peer'
+        exit
+        ```
+
+        Expected result:
+        ```
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something allowed-ips '10.203.218.130/32'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something allowed-ips '2000:3000:4000:5000:4940:bab0:93ed:c9a1/128'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something preshared-key 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something pubkey 'lJ/qevaXPjb6lqn+7W7GkvrEtB4RbGCsYkxDz9bBpSI='
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything allowed-ips '10.203.218.133/32'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything allowed-ips '2000:3000:4000:5000:b4ab:9c90:b2d0:10d6/128'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything preshared-key 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+        set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything pubkey 'BnOI2Om6I5blE145Yx9zXA2sKbIwMZ7O52aj8rlQ0mA='
+        ```
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierListResponse'
+    post:
+      summary: Trigger creation of a new peer
+      description: |
+        1. Generate IPv4 / IPv6 tunnel addresses
+            - get address/subnetmask of wireguard endpoint from configuration:  
+              ```
+              run show configuration commands | match 'interfaces wireguard {config.interface} address'
+              ```
+
+              Expected result:
+              ```
+              set interfaces wireguard {config.interface} address '10.203.218.129/25'
+              set interfaces wireguard {config.interface} address '2000:3000:4000:5000::1/64'
+              ```
+
+              - Example: 10.212.38.1/24
+                - 10.212.38.0/24 network
+                - 10.212.38.1 is being used by wireguard interface and can't be assigned to a peer
+              - Example: 172.28.135.254/21
+                - 172.28.128.0/21 network
+                - 172.28.135.254 is being used by wireguard interface and can't be assigned to a peer
+
+            - determine free address (ipv4 next free address from beginning of subnet, ipv6 random)
+              - addresses which are in use by other peers can be found using the following command:
+                ```bash
+                source /opt/vyatta/etc/functions/script-template
+                run show configuration commands | match 'interfaces wireguard {config.interface} peer' | match 'allowed-ips'
+                exit
+                ```
+
+                Expected result:
+                ```
+                set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something allowed-ips '10.203.218.130/32'
+                set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-something allowed-ips '2000:3000:4000:5000:4940:bab0:93ed:c9a1/128'
+                set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything allowed-ips '10.203.218.133/32'
+                set interfaces wireguard {config.interface} peer FIRSTNAME-LASTNAME-anything allowed-ips '2000:3000:4000:5000:b4ab:9c90:b2d0:10d6/128'
+                ```
+
+            - if only one ip address family (ipv4/ipv6) is defined, ignore the other
+            
+            - if no ip address family is defined (result of above command is empty)  
+              -> HTTP 500 + console print that wireguard interface {config.interface} is misconfigured
+
+        2. Configure firewall groups and wireguard interface:
+            ```
+            source /opt/vyatta/etc/functions/script-template
+            set firewall group address-group VPN-{FIRSTNAME}-{LASTNAME} address '{address4}'
+            set firewall group ipv6-address-group VPN-{FIRSTNAME}-{LASTNAME}-6 address '{address6}'
+            set interfaces wireguard {config.interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} allowed-ips '{address4}/32'
+            set interfaces wireguard {config.interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} allowed-ips '{address6}/128'
+            set interfaces wireguard {config.interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} pubkey '{public_key}'
+            ```
+        3. Set PSK if given:
+            ```
+            set interfaces wireguard {config.interface} peer {FIRSTNAME}-{LASTNAME}-{deviceId} preshared-key '{psk}';
+            ```
+        4. Apply configuration and write to disk:
+            ```
+            commit
+            save
+            exit
+            ```
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewPeerRequest'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/peer/{identifier}:
+    parameters:
+      - name: identifier
+        in: path
+        required: true
+        schema:
+          type: string
+          # FIRSTNAME-LASTNAME-id4device
+          pattern: '^(?=.{1,100}$)[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}$'
+        description: Identifier of the peer
+    get:
+      summary: Check the status of a peer
+      description: |
+        This endpoint first checks if the given identifier exist as peer of the configured wireguard interface.
+        This can be done by executing the following shell command:
+        ```bash
+        source /opt/vyatta/etc/functions/script-template
+        run show configuration commands | match 'interfaces wireguard {config.interface} peer {identifier}'
+        exit
+        ```
+        Expected result:
+        ```
+        set interfaces wireguard {config.interface} peer {identifier} allowed-ips '10.203.218.130/32'
+        set interfaces wireguard {config.interface} peer {identifier} allowed-ips '2000:3000:4000:5000:4940:bab0:93ed:c9a1/128'
+        set interfaces wireguard {config.interface} peer {identifier} preshared-key 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+        set interfaces wireguard {config.interface} peer {identifier} pubkey 'lJ/qevaXPjb6lqn+7W7GkvrEtB4RbGCsYkxDz9bBpSI='
+        ```
+        In case the command returned an empty string, the IsValidSchema with property `valid = false` is being returned.
+        Otherwise the peer exists, so we can return `PeerResponse` with all information for the wireguard client configuration.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetResponse'
+    delete:
+      summary: Trigger deletion of a peer by it's identifier
+      description: |
+        This endpoint deletes an existing peer from the wireguard interface and removes the corresponding tunnel ip addresses from the firewall group of the user (`VPN-{FIRSTNAME}-{LASTNAME}`)
+        
+        The corresponding ip addresses can be extracted using the following shell commands:
+        ```bash
+        source /opt/vyatta/etc/functions/script-template
+        run show configuration commands | match 'interfaces wireguard {config.interface} peer {identifier} allowed-ips'
+        exit
+        ```
+        Expected result:
+        ```
+        set interfaces wireguard {config.interface} peer {identifier} allowed-ips '10.203.218.130/32'
+        set interfaces wireguard {config.interface} peer {identifier} allowed-ips '2000:3000:4000:5000:4940:bab0:93ed:c9a1/128'
+        ```
+
+        For the next step, you need to be able to determine whether the resulting address is an ipv4 or ipv6 address.
+        
+        Afterwards the wireguard peer and the ip addresses in the firewall groups can be removed using the following shell commands:
+        ```bash
+        source /opt/vyatta/etc/functions/script-template
+        delete interface wireguard {config.interface} peer {identifier}
+        delete firewall group address-group VPN-{FIRSTNAME}-{LASTNAME} address {address4}
+        delete firewall group ipv6-address-group VPN-{FIRSTNAME}-{LASTNAME}-6 address {address6}
+        commit
+        save
+        exit
+        ```
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    IsValidResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Indicates whether the peer is configured on the router
+
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates whether the operation was successful
+
+    NewPeerRequest:
+      type: object
+      required:
+        - firstname
+        - lastname
+        - deviceId
+        - pubkey
+
+      properties:
+        firstname:
+          type: string
+          pattern: '^[A-Z]{1,100}$'
+          description: Firstname
+        lastname:
+          type: string
+          pattern: '^[A-Z]{1,100}$'
+          description: Lastname
+        deviceId:
+          type: string
+          pattern: '^[A-Za-z0-9]{1,32}$'
+          description: Device id
+        pubkey:
+          type: string
+          pattern: '^[A-Za-z0-9+/]{43}=$'
+          description: Wireguard public key of the user
+        psk:
+          type: string
+          pattern: '^[A-Za-z0-9+/]{43}=$'
+          description: Wireguard pre-shared key
+  
+    IdentifierListResponse:
+      type: object
+      properties:
+        peers:
+          type: object
+          description: |
+            The key is the combination FIRSTNAME-LASTNAME with ^[A-Z]{1,100}$
+          additionalProperties:
+            type: array
+            items:
+              type: string
+              pattern: '^(?=.{1,100}$)[A-Z]+-[A-Z]+-[A-Za-z0-9]{1,32}$'
+
+    PeerResponse:
+      type: object
+      required:
+        - firstname
+        - lastname
+        - deviceId
+        - serverId
+        - pubkey
+        - endpoint
+        - tunnelAddress
+        - valid
+
+      properties:
+        firstname:
+          type: string
+          pattern: '^[A-Z]{1,100}$'
+          description: Firstname
+
+        lastname:
+          type: string
+          pattern: '^[A-Z]{1,100}$'
+          description: Lastname
+
+        deviceId:
+          type: string
+          pattern: '^[A-Za-z0-9]{1,32}$'
+          description: Device id
+          
+        serverId:
+          type: string
+          pattern: '^[A-Za-z0-9\s\.]{1,100}$'
+          description: Identifier of the wireguard endpoint (e.g. fqdn of router)
+
+        pubkey:
+          type: string
+          pattern: '^[A-Za-z0-9+/]{43}=$'
+          description: Wireguard public key of the Wireguard endpoint of the server
+
+        endpoint:
+          type: object
+          properties:
+            address:
+              anyOf:
+                - type: string
+                  format: ipv4
+                  description: IPv4 Wireguard endpoint address
+                - type: string
+                  format: ipv6
+                  description: IPv6 Wireguard endpoint address
+            port:
+              type: integer
+              minimum: 1
+              maximum: 65535
+              description: Wireguard endpoint port
+
+        psk:
+          type: string
+          pattern: '^[A-Za-z0-9+/]{43}=$'
+          description: Wireguard pre-shared key
+        
+        tunnelAddress:
+          anyOf:
+            - type: string
+              format: ipv4
+              description: IPv4 tunnel address
+            - type: string
+              format: ipv6
+              description: IPv6 tunnel address
+        
+        dns:
+          anyOf:
+            - type: string
+              format: ipv4
+              description: IPv4 address of dns server
+            - type: string
+              format: ipv6
+              description: IPv6 address of dns server
+
+        valid:
+          type: boolean
+          description: Indicates whether the peer is configured on the router
+
+    GetResponse:
+      oneOf:
+        - $ref: '#/components/schemas/IsValidResponse'
+        - $ref: '#/components/schemas/PeerResponse'
+
+security:
+  - BearerAuth: []
+

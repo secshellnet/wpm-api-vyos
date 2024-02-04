@@ -10,7 +10,7 @@ use tracing::info;
 
 use crate::cfg::ClientCfg;
 use crate::schemas::ConfigState;
-use crate::views::{add_peer, delete_peer, get_peer, wpm_redirect};
+use crate::views::{get_peers, get_peer, add_peer, delete_peer};
 
 mod cfg;
 pub mod schemas;
@@ -23,17 +23,16 @@ async fn main() {
 
     tracing_subscriber::fmt::init();
 
-    // TODO think about enabling tls support using rustls
     info!("Listening on {}://{}...", "http", config.listen_addr);
 
     let api_router = Router::new()
+        .route("/peer/", get(get_peers))
         .route("/peer/:identifier", get(get_peer))
         .route("/peer/", post(add_peer))
         .route("/peer/:identifier", delete(delete_peer))
         .layer(ValidateRequestHeaderLayer::bearer(config.secret.as_str()));
 
     let app = Router::new()
-        .route("/", get(wpm_redirect))
         .nest("/api", api_router)
         .with_state(ConfigState {
             config: config.clone(),
