@@ -19,6 +19,11 @@ changes to green (usually taking no longer than 30 seconds), the peer is usable.
 All clients connecting to the same router use the same Wireguard endpoint (in our case, the interface `wg100`), 
 differing only in the IPv4 and IPv6 addresses used within the tunnel.
 
+## Router API
+- [OpenAPI Specification](https://editor.swagger.io/?url=https://raw.githubusercontent.com/secshellnet/wpm-api-vyos/main/spec.yaml)
+- [Implementation for Vyatta / VyOS](https://github.com/secshellnet/wpm-api-vyos)
+
+## Webinterface
 ![](./media/overview.png)
 ![](./media/view.png)
 ![](./media/new.png)
